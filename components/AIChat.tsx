@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { getCarRecommendation } from '../services/geminiService';
-import { ChatMessage } from '../types';
+import { ChatMessage, Car } from '../types';
+import { supabase } from '../lib/supabase';
 
 export const AIChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [fleet, setFleet] = useState<Car[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
@@ -25,6 +27,33 @@ export const AIChat: React.FC = () => {
     scrollToBottom();
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    const fetchFleet = async () => {
+      try {
+        const { data } = await supabase.from('cars').select('*');
+        if (data) {
+          const mappedCars: Car[] = data.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            category: c.category,
+            pricePerDay: c.price_per_day,
+            seats: c.seats,
+            transmission: c.transmission,
+            fuelType: c.fuel_type,
+            imageUrl: c.image_url,
+            features: c.features || [],
+            carWashFee: c.car_wash_fee,
+            excessHourRate: c.excess_hour_rate || 200
+          }));
+          setFleet(mappedCars);
+        }
+      } catch (err) {
+        console.error("Error fetching fleet for AI:", err);
+      }
+    };
+    fetchFleet();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -40,7 +69,7 @@ export const AIChat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const responseText = await getCarRecommendation(userMsg.content);
+      const responseText = await getCarRecommendation(userMsg.content, fleet);
       const aiMsg: ChatMessage = {
         role: 'assistant',
         content: responseText,

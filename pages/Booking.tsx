@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, Car, Users, Clock, User, FileText, MessageSquare, CheckCircle, Loader2, Facebook, Calendar, Wallet } from 'lucide-react';
+import { MapPin, Car as CarIcon, Users, Clock, User, FileText, MessageSquare, CheckCircle, Loader2, Facebook, Calendar, Wallet, ChevronDown, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import emailjs from '@emailjs/browser';
+import { Car } from '../types';
 
 export const Booking: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ export const Booking: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fleet, setFleet] = useState<Car[]>([]);
+  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
 
   // Read query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -22,12 +25,48 @@ export const Booking: React.FC = () => {
   const pickupDate = queryParams.get('pickup');
   const returnDate = queryParams.get('return');
 
+  useEffect(() => {
+    const fetchFleet = async () => {
+      try {
+        const { data } = await supabase.from('cars').select('*');
+        if (data) {
+          const mappedCars: Car[] = data.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            category: c.category,
+            pricePerDay: c.price_per_day,
+            seats: c.seats,
+            transmission: c.transmission,
+            fuelType: c.fuel_type,
+            imageUrl: c.image_url,
+            features: c.features || [],
+            carWashFee: c.car_wash_fee,
+            excessHourRate: c.excess_hour_rate || 200
+          }));
+          setFleet(mappedCars);
+          
+          // If carId is in URL, set it as selected
+          if (carId) {
+            const car = mappedCars.find(c => c.id === carId);
+            if (car) setSelectedCar(car);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching fleet for booking:", err);
+      }
+    };
+    fetchFleet();
+  }, [carId]);
+
   // Calculate duration and total
   let durationText = 'Not specified';
   let totalPrice = 0;
   let days = 0;
   let excessHours = 0;
   let excessAmount = 0;
+
+  const currentPricePerDay = selectedCar ? selectedCar.pricePerDay : (pricePerDay ? parseInt(pricePerDay) : 0);
+  const currentExcessRate = selectedCar ? selectedCar.excessHourRate : (excessRate ? parseInt(excessRate) : 200);
 
   if (pickupDate && returnDate) {
     const start = new Date(pickupDate);
@@ -48,10 +87,10 @@ export const Booking: React.FC = () => {
     
     durationText = `${days} Day(s)${excessHours > 0 ? ` & ${excessHours} Hour(s)` : ''}`;
     
-    if (pricePerDay) {
-      totalPrice = parseInt(pricePerDay) * days;
-      if (excessHours > 0 && excessRate) {
-        excessAmount = parseInt(excessRate) * excessHours;
+    if (currentPricePerDay) {
+      totalPrice = currentPricePerDay * days;
+      if (excessHours > 0 && currentExcessRate) {
+        excessAmount = currentExcessRate * excessHours;
         totalPrice += excessAmount;
       }
     }
@@ -59,6 +98,12 @@ export const Booking: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedCar && !carName) {
+      alert("Please select a vehicle first.");
+      return;
+    }
+
     setIsLoading(true);
 
     if (!form.current) return;
@@ -83,7 +128,7 @@ export const Booking: React.FC = () => {
         dropoff_location: 'As specified in search',
         start_date: pickupDate || new Date().toISOString(),
         duration: durationText,
-        car_type: carName || 'Any',
+        car_type: selectedCar?.name || carName || 'Any',
         special_requests: `Passengers: ${passengers}. Purpose: ${purpose}. ${specialRequests || ''}`,
         status: 'Pending'
       }]);
@@ -93,29 +138,52 @@ export const Booking: React.FC = () => {
       }
 
       // 2. Send Email via EmailJS
-      const serviceId = (import.meta as any).env.VITE_EMAILJS_SERVICE_ID;
-      const templateId = (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID;
-      const publicKey = (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY;
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
       if (serviceId && templateId && publicKey) {
         try {
-          await emailjs.sendForm(
+          // Construct explicit parameters for the email template
+          const templateParams = {
+            user_name: userName,
+            contact_number: contactNumber,
+            facebook_account: facebookAccount,
+            car_name: selectedCar?.name || carName || 'Any',
+            pickup_location: manualPickupLoc || pickupLoc,
+            pickup_date: pickupDate ? new Date(pickupDate).toLocaleString() : 'Not specified',
+            return_date: returnDate ? new Date(returnDate).toLocaleString() : 'Not specified',
+            duration: durationText,
+            total_price: `₱${totalPrice.toLocaleString()}`,
+            passengers: passengers,
+            purpose: purpose,
+            special_requests: specialRequests || 'None'
+          };
+
+          const result = await emailjs.send(
             serviceId,
             templateId,
-            form.current,
+            templateParams,
             publicKey
           );
-          console.log('EMAIL SENT SUCCESSFULLY!');
-        } catch (emailError) {
-          console.error('EMAIL FAILED...', emailError);
-          // We don't block the UI if email fails, as DB is already saved
+          console.log('EMAILJS SUCCESS:', result.status, result.text);
+        } catch (emailError: any) {
+          console.error('EMAILJS ERROR:', emailError);
         }
+      } else {
+        const missing = [];
+        if (!serviceId) missing.push('VITE_EMAILJS_SERVICE_ID');
+        if (!templateId) missing.push('VITE_EMAILJS_TEMPLATE_ID');
+        if (!publicKey) missing.push('VITE_EMAILJS_PUBLIC_KEY');
+        
+        console.error('EmailJS Configuration Missing:', missing.join(', '));
+        console.warn('Please set these environment variables in AI Studio Settings to receive email notifications.');
       }
       
       setSubmittedData({
         userName,
         contactNumber,
-        carName: carName || 'Any',
+        carName: selectedCar?.name || carName || 'Any',
         pickupDate,
         duration: durationText,
         totalPrice
@@ -131,17 +199,8 @@ export const Booking: React.FC = () => {
   };
 
   if (isSubmitted) {
-    const whatsappNumber = "639268416776"; // Example number
-    const message = `Hi B&MC Car Rental! I just submitted a booking request:
-Name: ${submittedData?.userName}
-Car: ${submittedData?.carName}
-Date: ${submittedData?.pickupDate}
-Duration: ${submittedData?.duration}
-Contact: ${submittedData?.contactNumber}
-Estimated: ₱${submittedData?.totalPrice?.toLocaleString()}
-
-Please confirm my booking. Thanks!`;
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    const facebookUrl = "https://www.facebook.com/profile.php?id=61565879651066";
+    const phoneNumber = "+639268416776";
 
     return (
       <div className="min-h-screen bg-light-gray flex items-center justify-center px-4 py-12">
@@ -167,23 +226,31 @@ Please confirm my booking. Thanks!`;
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent font-bold">3.</span>
-                For faster confirmation, you can message us directly on WhatsApp below.
+                For faster confirmation, you can message us on Facebook or call us directly.
               </li>
             </ul>
           </div>
 
           <div className="flex flex-col gap-3">
             <a 
-              href={whatsappUrl}
+              href={facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-[#25D366] text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+              className="w-full bg-[#1877F2] text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
             >
-              Message us on WhatsApp
+              <Facebook size={20} />
+              Message us on Facebook
+            </a>
+            <a 
+              href={`tel:${phoneNumber}`}
+              className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+              <Phone size={20} />
+              Call +63 926 841 6776
             </a>
             <button 
               onClick={() => navigate('/')}
-              className="w-full bg-slate-100 text-slate-700 font-bold py-4 rounded-xl hover:bg-slate-200 transition-colors uppercase tracking-wide"
+              className="w-full bg-slate-100 text-slate-700 font-bold py-4 rounded-xl hover:bg-slate-200 transition-colors uppercase tracking-wide mt-2"
             >
               Return to Home
             </button>
@@ -214,8 +281,29 @@ Please confirm my booking. Thanks!`;
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 text-slate-600">
-                <Car size={18} className="text-primary" />
-                <span className="text-sm font-medium">Vehicle: <span className="text-slate-900 font-bold">{carName || 'Selected Vehicle'}</span></span>
+                <CarIcon size={18} className="text-primary" />
+                <div className="flex-1">
+                  <span className="text-sm font-medium block mb-1">Vehicle:</span>
+                  {carId || selectedCar ? (
+                    <span className="text-slate-900 font-bold">{selectedCar?.name || carName}</span>
+                  ) : (
+                    <div className="relative">
+                      <select 
+                        onChange={(e) => {
+                          const car = fleet.find(c => c.id === e.target.value);
+                          if (car) setSelectedCar(car);
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-bold text-slate-900 appearance-none outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select a vehicle...</option>
+                        {fleet.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} (₱{c.pricePerDay}/day)</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3 text-slate-600">
                 <MapPin size={18} className="text-primary" />
@@ -233,7 +321,7 @@ Please confirm my booking. Thanks!`;
                 <div className="col-span-1 md:col-span-2 mt-2 p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-2">
                   <div className="flex justify-between items-center text-sm text-slate-600">
                     <span>Base Rental ({days} day/s)</span>
-                    <span className="font-bold">₱{(parseInt(pricePerDay || '0') * days).toLocaleString()}</span>
+                    <span className="font-bold">₱{(currentPricePerDay * days).toLocaleString()}</span>
                   </div>
                   {excessHours > 0 && (
                     <div className="flex justify-between items-center text-sm text-slate-600">
@@ -258,7 +346,7 @@ Please confirm my booking. Thanks!`;
 
           <form ref={form} onSubmit={handleSubmit} className="p-8 md:p-10 space-y-8">
             {/* Hidden fields for EmailJS */}
-            <input type="hidden" name="car_name" value={carName || 'Any'} />
+            <input type="hidden" name="car_name" value={selectedCar?.name || carName || 'Any'} />
             <input type="hidden" name="pickup_date" value={pickupDate || ''} />
             <input type="hidden" name="return_date" value={returnDate || ''} />
             <input type="hidden" name="duration" value={durationText} />

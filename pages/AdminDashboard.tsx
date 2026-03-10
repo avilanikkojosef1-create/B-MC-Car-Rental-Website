@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CAR_FLEET } from '../constants';
 import { Car, Booking } from '../types';
 import { LogOut, LayoutDashboard, Users, Plus, Edit, Trash2, Search, Save, X, Upload, Calendar, CheckCircle, XCircle, Loader2, AlertCircle, Database, Copy, Check, Settings, RefreshCw, Facebook } from 'lucide-react';
 import { supabase, getSupabaseConfig } from '../lib/supabase';
@@ -71,7 +70,7 @@ export const AdminDashboard: React.FC = () => {
         // Check for specific connection/setup errors
         // 42P01: Relation does not exist (Missing tables)
         // Failed to fetch: Network error or wrong URL
-        if (carError.code === '42P01' || carError.message?.includes('does not exist') || carError.message?.includes('Failed to fetch')) {
+        if (carError.code === '42P01' || carError.code === 'PGRST205' || carError.message?.includes('does not exist') || carError.message?.includes('Failed to fetch')) {
             setIsConnected(false);
             setNeedsSetup(true);
             setLoading(false);
@@ -79,7 +78,7 @@ export const AdminDashboard: React.FC = () => {
         }
         
         // Only fallback if it's NOT a missing table error
-        if (fleet.length === 0) setFleet(CAR_FLEET); 
+        if (fleet.length === 0) setFleet([]); 
       } else if (carsData) {
         setIsConnected(true);
         // Map DB columns (snake_case) to App types (camelCase)
@@ -105,7 +104,7 @@ export const AdminDashboard: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (bookingError) {
-         if (bookingError.code === '42P01' || bookingError.message?.includes('does not exist')) {
+         if (bookingError.code === '42P01' || bookingError.code === 'PGRST205' || bookingError.message?.includes('does not exist')) {
              setNeedsSetup(true);
              setLoading(false);
              return;
@@ -228,6 +227,7 @@ export const AdminDashboard: React.FC = () => {
         name: currentCar.name,
         category: currentCar.category,
         price_per_day: currentCar.pricePerDay || 0,
+        excess_hour_rate: currentCar.excessHourRate || 200,
         transmission: currentCar.transmission,
         fuel_type: currentCar.fuelType,
         seats: currentCar.seats,
@@ -289,6 +289,7 @@ create table if not exists public.cars (
   name text not null,
   category text not null,
   price_per_day numeric not null,
+  excess_hour_rate numeric default 200,
   seats text not null,
   transmission text not null,
   fuel_type text not null,
@@ -314,7 +315,14 @@ create table if not exists public.bookings (
   status text default 'Pending'
 );
 
--- 3. Create Storage Bucket (If not exists)
+-- 3. Create Admin Settings Table
+create table if not exists public.admin_settings (
+  id text primary key,
+  value text not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 4. Create Storage Bucket (If not exists)
 insert into storage.buckets (id, name, public) 
 values ('car-images', 'car-images', true)
 on conflict (id) do nothing;
@@ -322,8 +330,19 @@ on conflict (id) do nothing;
 -- 4. Enable RLS
 alter table public.cars enable row level security;
 alter table public.bookings enable row level security;
+alter table public.admin_settings enable row level security;
 
 -- 5. Create Policies (Drop first to avoid "already exists" errors)
+-- Admin Settings Policies
+drop policy if exists "Public Read Admin Settings" on public.admin_settings;
+create policy "Public Read Admin Settings" on public.admin_settings for select using (true);
+
+drop policy if exists "Public Update Admin Settings" on public.admin_settings;
+create policy "Public Update Admin Settings" on public.admin_settings for update using (true);
+
+drop policy if exists "Public Insert Admin Settings" on public.admin_settings;
+create policy "Public Insert Admin Settings" on public.admin_settings for insert with check (true);
+
 -- Cars Policies
 drop policy if exists "Public Read Cars" on public.cars;
 create policy "Public Read Cars" on public.cars for select using (true);
@@ -506,6 +525,13 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                                     {githubStatus?.connected ? 'Connected' : 'Disconnected'}
                                 </span>
                             )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400">Supabase DB</span>
+                            <span className={`flex items-center gap-1 ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                {isConnected ? 'Connected' : 'Disconnected'}
+                            </span>
                         </div>
                         {githubStatus?.connected && githubStatus.user && (
                             <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-lg">
@@ -788,6 +814,31 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                     <option value="Automatic">Automatic</option>
                     <option value="Manual">Manual</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-700">Excess Hour Rate (₱)</label>
+                  <input 
+                    type="number" 
+                    value={currentCar.excessHourRate ?? ''} 
+                    onChange={e => {
+                        const val = e.target.value;
+                        setCurrentCar(prev => ({...prev, excessHourRate: val === '' ? undefined : parseFloat(val)}));
+                    }}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700">Seats</label>
+                  <input 
+                    type="text" 
+                    value={currentCar.seats || ''} 
+                    onChange={e => setCurrentCar(prev => ({...prev, seats: e.target.value}))}
+                    placeholder="e.g., 5"
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  />
                 </div>
               </div>
 

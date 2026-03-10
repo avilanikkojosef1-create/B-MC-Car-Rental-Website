@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CAR_FLEET } from '../constants';
 import { CarCard } from '../components/CarCard';
 import { Search, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -36,6 +35,11 @@ export const Fleet: React.FC = () => {
       try {
         const { data, error } = await supabase.from('cars').select('*').order('created_at', { ascending: false });
         
+        if (error) {
+          console.error("Supabase Error fetching cars:", error);
+          return;
+        }
+
         if (data && data.length > 0) {
           const mappedCars: Car[] = data.map((c: any) => ({
             id: c.id,
@@ -52,12 +56,12 @@ export const Fleet: React.FC = () => {
           }));
           setCars(mappedCars);
         } else {
-          // Fallback to constants if DB is empty or error
-          setCars(CAR_FLEET);
+          // Fallback to empty if DB is empty
+          setCars([]);
         }
       } catch (err) {
         console.error(err);
-        setCars(CAR_FLEET);
+        setCars([]);
       } finally {
         setLoading(false);
       }

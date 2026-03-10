@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
-import { CAR_FLEET } from "../constants";
+import { Car } from "../types";
 
 const SYSTEM_INSTRUCTION = `
 You are "B&MC AI", the expert concierge for B&MC CAR RENTAL Tacloban located in Tacloban City.
-Your goal is to help customers choose the perfect vehicle from our specific fleet.
+Your goal is to help customers choose the perfect vehicle from our fleet.
 
 Business Details:
 - Service Area: Tacloban, Leyte, and Samar ONLY.
@@ -12,22 +12,25 @@ Business Details:
 - Starting Price: 1488 PHP.
 - USP: No hidden fees, 24/7 support.
 
-Fleet Data:
-${JSON.stringify(CAR_FLEET)}
-
 Rules:
-1. ONLY recommend cars from the provided list (Wigo, Vios, Rush, Livina, Avanza, Xpander, Innova, Montero, Terra, Urvan, Triton, Navarra, L300).
+1. Recommend cars based on customer needs (Hatchbacks, Sedans, SUVs, Vans, Pickups).
 2. If asking about locations, confirm we serve Leyte and Samar (including crossing San Juanico Bridge).
 3. Be professional and enthusiastic.
 4. Keep responses under 100 words.
 `;
 
-export const getCarRecommendation = async (userQuery: string): Promise<string> => {
+export const getCarRecommendation = async (userQuery: string, fleet: Car[] = []): Promise<string> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    
+    // Construct fleet context
+    const fleetContext = fleet.length > 0 
+      ? `Current Available Fleet:\n${fleet.map(c => `- ${c.name} (${c.category}): ₱${c.pricePerDay}/day, ${c.seats} seats, ${c.transmission}`).join('\n')}`
+      : "Fleet information is currently being updated in the garage.";
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: userQuery,
+      contents: `${fleetContext}\n\nCustomer Query: ${userQuery}`,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,

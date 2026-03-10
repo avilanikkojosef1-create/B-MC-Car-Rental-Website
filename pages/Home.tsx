@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CAR_FLEET, APP_NAME } from '../constants';
+import { APP_NAME } from '../constants';
 import { CarCard } from '../components/CarCard';
 import { ShieldCheck, UserCheck, ArrowRight, Search, ThumbsUp, Wallet, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Car } from '../types';
 
 export const Home: React.FC = () => {
-  const [featuredCars, setFeaturedCars] = useState<Car[]>(CAR_FLEET.slice(0, 3));
+  const [featuredCars, setFeaturedCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
   const [searchParams, setSearchParams] = useState({
@@ -27,23 +28,30 @@ export const Home: React.FC = () => {
 
   useEffect(() => {
     const fetchFeatured = async () => {
-       // Fetch top 3 cars
-       const { data } = await supabase.from('cars').select('*').limit(3).order('created_at', { ascending: false });
-       if (data && data.length > 0) {
-          const mappedCars: Car[] = data.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            category: c.category,
-            pricePerDay: c.price_per_day,
-            seats: c.seats,
-            transmission: c.transmission,
-            fuelType: c.fuel_type,
-            imageUrl: c.image_url,
-            features: c.features || [],
-            carWashFee: c.car_wash_fee,
-            excessHourRate: c.excess_hour_rate || 200 // Default fallback
-          }));
-          setFeaturedCars(mappedCars);
+       setLoading(true);
+       try {
+         // Fetch top 3 cars
+         const { data } = await supabase.from('cars').select('*').limit(3).order('created_at', { ascending: false });
+         if (data && data.length > 0) {
+            const mappedCars: Car[] = data.map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              category: c.category,
+              pricePerDay: c.price_per_day,
+              seats: c.seats,
+              transmission: c.transmission,
+              fuelType: c.fuel_type,
+              imageUrl: c.image_url,
+              features: c.features || [],
+              carWashFee: c.car_wash_fee,
+              excessHourRate: c.excess_hour_rate || 200 // Default fallback
+            }));
+            setFeaturedCars(mappedCars);
+         }
+       } catch (err) {
+         console.error("Error fetching featured cars:", err);
+       } finally {
+         setLoading(false);
        }
     };
     fetchFeatured();
@@ -221,9 +229,29 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredCars.map(car => (
-              <CarCard key={car.id} car={car} />
-            ))}
+            {loading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-2xl h-[400px] animate-pulse border border-slate-100">
+                  <div className="h-48 bg-slate-200 rounded-t-2xl"></div>
+                  <div className="p-6 space-y-4">
+                    <div className="h-6 bg-slate-200 w-3/4 rounded"></div>
+                    <div className="h-4 bg-slate-200 w-1/2 rounded"></div>
+                    <div className="grid grid-cols-2 gap-4 pt-4">
+                      <div className="h-8 bg-slate-200 rounded"></div>
+                      <div className="h-8 bg-slate-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : featuredCars.length > 0 ? (
+              featuredCars.map(car => (
+                <CarCard key={car.id} car={car} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 text-slate-500">
+                No featured vehicles available at the moment.
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -38,7 +38,6 @@ async function startServer() {
   });
 
   app.get("/api/user", async (req, res) => {
-    // Keep this for potential future user auth, but for now it just checks the app token
     const token = process.env.GITHUB_TOKEN;
     if (!token) {
       return res.json({ user: null });

@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import axios from "axios";
 import cookieParser from "cookie-parser";
 import path from "path";
@@ -32,8 +31,8 @@ async function startServer() {
         },
       });
       res.json({ connected: true, user: response.data });
-    } catch (error: any) {
-      res.json({ connected: false, error: error.message });
+    } catch (error) {
+      res.json({ connected: false, error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -57,6 +56,7 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

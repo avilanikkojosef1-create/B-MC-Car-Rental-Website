@@ -90,7 +90,7 @@ async function startServer() {
       app.use(express.static(distPath, { index: false }));
       
       // Serve index.html with injected environment variables
-      app.get('*', (req, res) => {
+      app.get('*all', (req, res) => {
         try {
           let html = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
           const envScript = `<script>

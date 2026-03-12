@@ -2,6 +2,7 @@ import express from "express";
 import axios from "axios";
 import cookieParser from "cookie-parser";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -67,8 +68,11 @@ async function startServer() {
     });
 
     // Detect production environment (Cloud Run always sets K_SERVICE)
-    const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
-    console.log(`Is Production Mode: ${isProduction}`);
+    const distPath = path.join(__dirname, "dist");
+    const distExists = fs.existsSync(path.join(distPath, "index.html"));
+    const isProduction = (process.env.NODE_ENV === "production" || !!process.env.K_SERVICE) && distExists;
+    
+    console.log(`Is Production Mode: ${isProduction} (dist exists: ${distExists})`);
 
     if (!isProduction) {
       console.log("Initializing Vite middleware for development...");
@@ -81,10 +85,30 @@ async function startServer() {
       console.log("Vite middleware initialized.");
     } else {
       console.log("Setting up static file serving for production...");
-      const distPath = path.join(__dirname, "dist");
-      app.use(express.static(distPath));
-      app.use((req, res) => {
-        res.sendFile(path.join(distPath, "index.html"));
+      
+      // Serve static files, but NOT index.html automatically
+      app.use(express.static(distPath, { index: false }));
+      
+      // Serve index.html with injected environment variables
+      app.get('*', (req, res) => {
+        try {
+          let html = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
+          const envScript = `<script>
+            window.ENV = {
+              VITE_EMAILJS_SERVICE_ID: ${JSON.stringify(process.env.VITE_EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICE_ID || '')},
+              VITE_EMAILJS_TEMPLATE_ID: ${JSON.stringify(process.env.VITE_EMAILJS_TEMPLATE_ID || process.env.EMAILJS_TEMPLATE_ID || '')},
+              VITE_EMAILJS_RESET_TEMPLATE_ID: ${JSON.stringify(process.env.VITE_EMAILJS_RESET_TEMPLATE_ID || process.env.EMAILJS_RESET_TEMPLATE_ID || '')},
+              VITE_EMAILJS_PUBLIC_KEY: ${JSON.stringify(process.env.VITE_EMAILJS_PUBLIC_KEY || process.env.EMAILJS_PUBLIC_KEY || '')},
+              VITE_ADMIN_USERNAME: ${JSON.stringify(process.env.VITE_ADMIN_USERNAME || process.env.ADMIN_USERNAME || '')},
+              VITE_ADMIN_PASSWORD: ${JSON.stringify(process.env.VITE_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '')}
+            };
+          </script>`;
+          html = html.replace('</head>', `${envScript}</head>`);
+          res.send(html);
+        } catch (err) {
+          console.error("Error serving index.html:", err);
+          res.status(500).send("Server Error");
+        }
       });
       console.log(`Serving static files from: ${distPath}`);
     }

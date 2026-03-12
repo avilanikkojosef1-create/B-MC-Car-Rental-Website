@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, Car as CarIcon, Users, Clock, User, FileText, MessageSquare, CheckCircle, Loader2, Facebook, Calendar, Wallet, ChevronDown, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getEnv } from '../lib/env';
 import emailjs from '@emailjs/browser';
 import { Car } from '../types';
 
@@ -138,9 +139,9 @@ export const Booking: React.FC = () => {
       }
 
       // 2. Send Email via EmailJS
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      const serviceId = getEnv('VITE_EMAILJS_SERVICE_ID');
+      const templateId = getEnv('VITE_EMAILJS_TEMPLATE_ID');
+      const publicKey = getEnv('VITE_EMAILJS_PUBLIC_KEY');
 
       if (serviceId && templateId && publicKey) {
         try {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, User, CarFront, AlertTriangle, Loader2, Key, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { supabase } from '../lib/supabase';
+import { getEnv } from '../lib/env';
 
 export const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -28,12 +29,12 @@ export const AdminLogin: React.FC = () => {
   }, []);
 
   const sendSecurityAlert = async (type: 'lock' | 'reset', code?: string) => {
-    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    const serviceId = getEnv('VITE_EMAILJS_SERVICE_ID');
+    const publicKey = getEnv('VITE_EMAILJS_PUBLIC_KEY');
     
     // Use a specific template for resets if available, otherwise fallback to the requested one
-    const resetTemplateId = import.meta.env.VITE_EMAILJS_RESET_TEMPLATE_ID;
-    const mainTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const resetTemplateId = getEnv('VITE_EMAILJS_RESET_TEMPLATE_ID');
+    const mainTemplateId = getEnv('VITE_EMAILJS_TEMPLATE_ID');
     
     const isReset = type === 'reset';
     const templateId = isReset ? (resetTemplateId || 'template_jy6cxrf') : mainTemplateId;
@@ -100,8 +101,8 @@ export const AdminLogin: React.FC = () => {
         .eq('id', 'admin_username')
         .maybeSingle();
 
-      const envUser = (import.meta as any).env.VITE_ADMIN_USERNAME || 'admin';
-      const envPass = (import.meta as any).env.VITE_ADMIN_PASSWORD || '1234';
+      const envUser = getEnv('VITE_ADMIN_USERNAME') || 'admin';
+      const envPass = getEnv('VITE_ADMIN_PASSWORD') || '1234';
 
       const validUser = customUserData?.value || envUser;
       const validPass = customPassData?.value || envPass;

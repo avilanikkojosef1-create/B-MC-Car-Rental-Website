@@ -40,12 +40,15 @@ async function startServer() {
       try {
         const response = await axios.get(GITHUB_USER_URL, {
           headers: {
-            Authorization: `token ${token}`,
+            Authorization: `Bearer ${token}`,
+            "User-Agent": "Seff-Car-Rental-App",
           },
         });
         res.json({ connected: true, user: response.data });
       } catch (error) {
-        res.json({ connected: false, error: error instanceof Error ? error.message : String(error) });
+        const errorMessage = error.response?.data?.message || error.message || String(error);
+        console.error("GitHub Status Error:", errorMessage);
+        res.json({ connected: false, error: errorMessage });
       }
     });
 
@@ -58,11 +61,13 @@ async function startServer() {
       try {
         const response = await axios.get(GITHUB_USER_URL, {
           headers: {
-            Authorization: `token ${token}`,
+            Authorization: `Bearer ${token}`,
+            "User-Agent": "Seff-Car-Rental-App",
           },
         });
         res.json({ user: response.data });
       } catch (error) {
+        console.error("GitHub User Error:", error.response?.data?.message || error.message);
         res.json({ user: null });
       }
     });

@@ -580,7 +580,18 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                             </div>
                         )}
                         {!githubStatus?.connected && !checkingGithub && (
-                            <p className="text-[10px] text-slate-500 italic">Set GITHUB_TOKEN in AI Studio Settings</p>
+                            <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                <p className="text-[10px] text-red-400 font-bold mb-1">
+                                    {githubStatus?.error === 'GITHUB_TOKEN not configured' ? 'Action Required:' : 'Connection Error:'}
+                                </p>
+                                <p className="text-[9px] text-slate-400 leading-tight">
+                                    {githubStatus?.error === 'GITHUB_TOKEN not configured' ? (
+                                        <>Go to <span className="text-white font-bold">Settings</span> menu and set <span className="text-orange-400 font-bold">GITHUB_TOKEN</span> to enable GitHub integration features.</>
+                                    ) : (
+                                        <span className="text-red-300 italic">{githubStatus?.error || 'Unknown error'}</span>
+                                    )}
+                                </p>
+                            </div>
                         )}
                     </div>
                 </div>

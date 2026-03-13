@@ -94,6 +94,11 @@ export const Booking: React.FC = () => {
         excessAmount = currentExcessRate * excessHours;
         totalPrice += excessAmount;
       }
+      
+      // Add car wash fee if applicable
+      if (selectedCar?.carWashFee) {
+        totalPrice += selectedCar.carWashFee;
+      }
     }
   }
 
@@ -328,6 +333,12 @@ export const Booking: React.FC = () => {
                     <div className="flex justify-between items-center text-sm text-slate-600">
                       <span>Excess Hours ({excessHours} hr/s)</span>
                       <span className="font-bold text-orange-600">+ ₱{excessAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedCar?.carWashFee && selectedCar.carWashFee > 0 && (
+                    <div className="flex justify-between items-center text-sm text-slate-600">
+                      <span>Car Wash Fee</span>
+                      <span className="font-bold text-blue-600">+ ₱{selectedCar.carWashFee.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="pt-2 border-t border-primary/10 flex justify-between items-center">

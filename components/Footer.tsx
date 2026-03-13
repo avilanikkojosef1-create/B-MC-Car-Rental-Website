@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CarFront, Facebook, Instagram, Mail, Phone, MapPin, Video, Lock } from 'lucide-react';
+import { Facebook, Mail, Phone, MapPin, Lock } from 'lucide-react';
 import { APP_NAME } from '../constants';
 
 export const Footer: React.FC = () => {
@@ -36,30 +36,10 @@ export const Footer: React.FC = () => {
               >
                 <Facebook size={20} />
               </a>
-              <a 
-                href="https://www.instagram.com/seffcarrental/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-secondary transition-colors" 
-                title="Instagram"
-              >
-                <Instagram size={20} />
-              </a>
-              <a 
-                href="https://www.tiktok.com/@seff.car.rental" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-secondary transition-colors" 
-                title="TikTok"
-              >
-                <Video size={20} />
-              </a>
             </div>
             
             <div className="mt-4 text-xs text-slate-500">
                <p>FB: B&MC CAR RENTAL Tacloban</p>
-               <p>IG: @bmccarrental</p>
-               <p>Tiktok: @bmccarrental</p>
             </div>
           </div>
 
@@ -96,7 +76,7 @@ export const Footer: React.FC = () => {
             <div className="mt-8 border-t border-slate-800 pt-6">
                 <h5 className="text-secondary font-bold mb-2 text-sm uppercase tracking-wide">Get Exclusive Deals</h5>
                 <p className="text-slate-400 text-sm mb-4">
-                    Follow us on Facebook, Instagram, and TikTok to catch our latest travel promos and discount vouchers!
+                    Follow us on Facebook to catch our latest travel promos and discount vouchers!
                 </p>
                 <p className="text-xs text-slate-500 leading-relaxed">
                     {APP_NAME} provides reliable <span className="text-slate-400">car rental Tacloban City</span> services across Leyte, Philippines. From <span className="text-slate-400">Tacloban airport car rental</span> to long-term <span className="text-slate-400">self drive</span> options, we are your trusted travel partner in the region.

@@ -92,7 +92,8 @@ export const AdminDashboard: React.FC = () => {
           fuelType: c.fuel_type,
           imageUrl: c.image_url,
           features: c.features || [],
-          carWashFee: c.car_wash_fee
+          carWashFee: c.car_wash_fee,
+          excessHourRate: c.excess_hour_rate
         }));
         setFleet(mappedCars);
       }
@@ -297,6 +298,20 @@ create table if not exists public.cars (
   features text[] default '{}',
   car_wash_fee numeric default 0
 );
+
+-- Ensure missing columns exist in case table was created earlier
+do $$
+begin
+  if not exists (select from information_schema.columns where table_name = 'cars' and column_name = 'excess_hour_rate') then
+    alter table public.cars add column excess_hour_rate numeric default 200;
+  end if;
+  if not exists (select from information_schema.columns where table_name = 'cars' and column_name = 'car_wash_fee') then
+    alter table public.cars add column car_wash_fee numeric default 0;
+  end if;
+end $$;
+
+-- 3. Force Schema Cache Reload
+notify pgrst, 'reload schema';
 
 -- 2. Create Bookings Table
 create table if not exists public.bookings (
@@ -855,18 +870,6 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                   </select>
                 </div>
                  <div>
-                  <label className="text-sm font-bold text-slate-700">Seats</label>
-                  <input 
-                    type="text" 
-                    value={currentCar.seats || ''} 
-                    onChange={e => setCurrentCar(prev => ({...prev, seats: e.target.value}))}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                  <div>
                     <label className="text-sm font-bold text-slate-700">Car Wash Fee (₱)</label>
                     <input 
                         type="number" 

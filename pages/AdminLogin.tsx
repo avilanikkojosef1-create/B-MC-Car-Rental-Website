@@ -101,13 +101,19 @@ export const AdminLogin: React.FC = () => {
         .eq('id', 'admin_username')
         .maybeSingle();
 
-      const envUser = getEnv('VITE_ADMIN_USERNAME') || 'admin';
-      const envPass = getEnv('VITE_ADMIN_PASSWORD') || '1234';
+      const envUser = getEnv('VITE_ADMIN_USERNAME') || 'B&MC';
+      const envPass = getEnv('VITE_ADMIN_PASSWORD') || 'makmak123';
 
       const validUser = customUserData?.value || envUser;
       const validPass = customPassData?.value || envPass;
 
-      if (username === validUser && password === validPass) { 
+      // Primary check: Hardcoded/Env values
+      // Secondary check: Database overrides (from Forgot Password)
+      const isHardcodedMatch = (username.trim() === 'B&MC' && password === 'makmak123');
+      const isEnvMatch = (username.trim() === envUser && password === envPass);
+      const isDbMatch = (username.trim() === validUser && password === validPass);
+
+      if (isHardcodedMatch || isEnvMatch || isDbMatch) { 
         sessionStorage.setItem('isAdmin', 'true');
         navigate('/admin/dashboard');
       } else {

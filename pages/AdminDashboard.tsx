@@ -163,22 +163,42 @@ export const AdminDashboard: React.FC = () => {
     setCurrentCar({
       name: '',
       category: 'Sedan',
-      features: ['New Model', 'Air Conditioning'],
+      features: [],
       imageUrl: '',
       pricePerDay: 1500,
-      seats: 5,
+      seats: '5',
       transmission: 'Automatic',
       fuelType: 'Unleaded',
-      carWashFee: 200
+      carWashFee: 200,
+      excessHourRate: 200
     });
     setImageFile(null);
+    setNewFeature('');
     setIsModalOpen(true);
   };
 
   const openEditModal = (car: Car) => {
     setCurrentCar({ ...car });
     setImageFile(null);
+    setNewFeature('');
     setIsModalOpen(true);
+  };
+
+  const addFeature = () => {
+    if (newFeature.trim()) {
+      setCurrentCar(prev => ({
+        ...prev,
+        features: [...(prev.features || []), newFeature.trim()]
+      }));
+      setNewFeature('');
+    }
+  };
+
+  const removeFeature = (index: number) => {
+    setCurrentCar(prev => ({
+      ...prev,
+      features: (prev.features || []).filter((_, i) => i !== index)
+    }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,6 +301,8 @@ export const AdminDashboard: React.FC = () => {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus as any } : b));
     }
   };
+
+  const [newFeature, setNewFeature] = useState('');
 
   // SQL Script for Missing Tables
   const SQL_SCRIPT = `-- 1. Create Cars Table
@@ -857,7 +879,7 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                 </div>
               </div>
 
-               <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                  <div>
                   <label className="text-sm font-bold text-slate-700">Fuel</label>
                   <select 
@@ -881,6 +903,37 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                         className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono"
                     />
                   </div>
+              </div>
+
+              {/* Features Editor */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">Features</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={newFeature}
+                    onChange={e => setNewFeature(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && addFeature()}
+                    placeholder="Add a feature (e.g. Bluetooth)"
+                    className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                  <button 
+                    onClick={addFeature}
+                    className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-200"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(currentCar.features || []).map((feature, idx) => (
+                    <span key={idx} className="bg-orange-50 text-orange-700 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 border border-orange-100">
+                      {feature}
+                      <button onClick={() => removeFeature(idx)} className="hover:text-red-600">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 

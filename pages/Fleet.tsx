@@ -16,19 +16,26 @@ export const Fleet: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(['All']);
 
   // Calculate duration in days
   let durationDays = 0;
+  let excessHours = 0;
   if (pickupDate && returnDate) {
     const start = new Date(pickupDate);
     const end = new Date(returnDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
-    durationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (durationDays === 0) durationDays = 1; // Minimum 1 day
+    const totalHours = diffTime / (1000 * 60 * 60);
+    
+    durationDays = Math.floor(totalHours / 24);
+    const rawExcess = totalHours % 24;
+    excessHours = rawExcess >= 1 ? Math.ceil(rawExcess) : 0;
+    
+    if (durationDays === 0 && totalHours > 0) {
+      durationDays = 1;
+      excessHours = 0;
+    }
   }
-
-  // Updated categories based on new fleet
-  const categories = ['All', 'Hatchback', 'Sedan', 'MPV', 'SUV', 'Compact SUV', 'Van', 'Pickup', 'L300'];
 
   useEffect(() => {
     const fetchCars = async () => {
@@ -55,9 +62,14 @@ export const Fleet: React.FC = () => {
             excessHourRate: c.excess_hour_rate || 200 // Default fallback
           }));
           setCars(mappedCars);
+
+          // Extract unique categories
+          const uniqueCats = Array.from(new Set(mappedCars.map(car => car.category)));
+          setCategories(['All', ...uniqueCats.sort()]);
         } else {
           // Fallback to empty if DB is empty
           setCars([]);
+          setCategories(['All']);
         }
       } catch (err) {
         console.error(err);

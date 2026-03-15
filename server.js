@@ -32,7 +32,7 @@ async function startServer() {
 
     // API Routes
     app.get("/api/github/status", async (req, res) => {
-      const rawToken = process.env.GITHUB_TOKEN;
+      const rawToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
       const token = rawToken?.trim();
       
       if (!token) {
@@ -41,7 +41,8 @@ async function startServer() {
           error: "GITHUB_TOKEN not configured",
           debug: {
             exists: rawToken !== undefined,
-            length: rawToken?.length || 0
+            length: rawToken?.length || 0,
+            hasVitePrefix: !!process.env.VITE_GITHUB_TOKEN
           }
         });
       }
@@ -66,13 +67,20 @@ async function startServer() {
           connected: false, 
           error: errorMessage,
           statusCode: error.response?.status,
-          isProduction: process.env.NODE_ENV === 'production'
+          isProduction: process.env.NODE_ENV === 'production',
+          debug: {
+            exists: rawToken !== undefined,
+            length: rawToken?.length || 0,
+            hasVitePrefix: !!process.env.VITE_GITHUB_TOKEN,
+            tokenStart: token ? token.substring(0, 4) + '...' : 'none',
+            axiosError: error.code || 'none'
+          }
         });
       }
     });
 
     app.get("/api/user", async (req, res) => {
-      const token = process.env.GITHUB_TOKEN?.trim();
+      const token = (process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN)?.trim();
       if (!token) {
         return res.json({ user: null });
       }

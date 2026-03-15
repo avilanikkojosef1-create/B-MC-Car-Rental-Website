@@ -24,6 +24,9 @@ export const AdminDashboard: React.FC = () => {
     debug?: {
       exists: boolean;
       length: number;
+      hasVitePrefix?: boolean;
+      tokenStart?: string;
+      axiosError?: string;
     }
   } | null>(null);
   const [checkingGithub, setCheckingGithub] = useState(false);
@@ -619,9 +622,14 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                                             )}
 
                                             {githubStatus?.debug && (
-                                                <p className="text-[8px] opacity-50">
-                                                    Status: {githubStatus.debug.exists ? `Found (${githubStatus.debug.length} chars)` : 'Not found in environment'}
-                                                </p>
+                                                <div className="text-[8px] opacity-50 space-y-0.5">
+                                                    <p>Status: {githubStatus.debug.exists ? `Found (${githubStatus.debug.length} chars)` : 'Not found in environment'}</p>
+                                                    <p>Prefix: {githubStatus.debug.hasVitePrefix ? 'VITE_' : 'None'}</p>
+                                                    <p>Token: {githubStatus.debug.tokenStart}</p>
+                                                    {githubStatus.debug.axiosError && githubStatus.debug.axiosError !== 'none' && (
+                                                        <p>Axios Code: {githubStatus.debug.axiosError}</p>
+                                                    )}
+                                                </div>
                                             )}
                                             <p className="text-[8px] text-orange-300/70 italic mt-1">Note: If using the Shared App, you must click "Share" again after updating settings.</p>
                                         </div>
@@ -630,6 +638,16 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                                             <span className="text-red-300 italic">{githubStatus?.error || 'Unknown error'}</span>
                                             {githubStatus?.statusCode && (
                                                 <p className="text-[8px] opacity-50">HTTP Status: {githubStatus.statusCode}</p>
+                                            )}
+                                            {githubStatus?.debug && (
+                                                <div className="text-[8px] opacity-50 space-y-0.5">
+                                                    <p>Status: {githubStatus.debug.exists ? `Found (${githubStatus.debug.length} chars)` : 'Not found in environment'}</p>
+                                                    <p>Prefix: {githubStatus.debug.hasVitePrefix ? 'VITE_' : 'None'}</p>
+                                                    <p>Token: {githubStatus.debug.tokenStart}</p>
+                                                    {githubStatus.debug.axiosError && githubStatus.debug.axiosError !== 'none' && (
+                                                        <p>Axios Code: {githubStatus.debug.axiosError}</p>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     )}

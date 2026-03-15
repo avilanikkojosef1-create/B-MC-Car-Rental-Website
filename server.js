@@ -32,9 +32,18 @@ async function startServer() {
 
     // API Routes
     app.get("/api/github/status", async (req, res) => {
-      const token = process.env.GITHUB_TOKEN;
+      const rawToken = process.env.GITHUB_TOKEN;
+      const token = rawToken?.trim();
+      
       if (!token) {
-        return res.json({ connected: false, error: "GITHUB_TOKEN not configured" });
+        return res.json({ 
+          connected: false, 
+          error: "GITHUB_TOKEN not configured",
+          debug: {
+            exists: rawToken !== undefined,
+            length: rawToken?.length || 0
+          }
+        });
       }
 
       try {
@@ -43,17 +52,22 @@ async function startServer() {
             Authorization: `Bearer ${token}`,
             "User-Agent": "Seff-Car-Rental-App",
           },
+          timeout: 5000, // Add timeout
         });
         res.json({ connected: true, user: response.data });
       } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || String(error);
         console.error("GitHub Status Error:", errorMessage);
-        res.json({ connected: false, error: errorMessage });
+        res.json({ 
+          connected: false, 
+          error: errorMessage,
+          statusCode: error.response?.status
+        });
       }
     });
 
     app.get("/api/user", async (req, res) => {
-      const token = process.env.GITHUB_TOKEN;
+      const token = process.env.GITHUB_TOKEN?.trim();
       if (!token) {
         return res.json({ user: null });
       }
@@ -64,6 +78,7 @@ async function startServer() {
             Authorization: `Bearer ${token}`,
             "User-Agent": "Seff-Car-Rental-App",
           },
+          timeout: 5000,
         });
         res.json({ user: response.data });
       } catch (error) {

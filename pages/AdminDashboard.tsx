@@ -15,7 +15,16 @@ export const AdminDashboard: React.FC = () => {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [connectionError, setConnectionError] = useState<string>('');
-  const [githubStatus, setGithubStatus] = useState<{ connected: boolean; user?: any; error?: string } | null>(null);
+  const [githubStatus, setGithubStatus] = useState<{ 
+    connected: boolean; 
+    user?: any; 
+    error?: string;
+    statusCode?: number;
+    debug?: {
+      exists: boolean;
+      length: number;
+    }
+  } | null>(null);
   const [checkingGithub, setCheckingGithub] = useState(false);
 
   // Settings State
@@ -586,9 +595,22 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                                 </p>
                                 <p className="text-[9px] text-slate-400 leading-tight">
                                     {githubStatus?.error === 'GITHUB_TOKEN not configured' ? (
-                                        <>Go to <span className="text-white font-bold">Settings</span> menu and set <span className="text-orange-400 font-bold">GITHUB_TOKEN</span> to enable GitHub integration features.</>
+                                        <div className="space-y-1">
+                                            <p>Go to <span className="text-white font-bold">Settings</span> menu and set <span className="text-orange-400 font-bold">GITHUB_TOKEN</span>.</p>
+                                            {githubStatus?.debug && (
+                                                <p className="text-[8px] opacity-50">
+                                                    Status: {githubStatus.debug.exists ? `Found (${githubStatus.debug.length} chars)` : 'Not found in environment'}
+                                                </p>
+                                            )}
+                                            <p className="text-[8px] text-orange-300/70 italic mt-1">Note: If using the Shared App, you must click "Share" again after updating settings.</p>
+                                        </div>
                                     ) : (
-                                        <span className="text-red-300 italic">{githubStatus?.error || 'Unknown error'}</span>
+                                        <div className="space-y-1">
+                                            <span className="text-red-300 italic">{githubStatus?.error || 'Unknown error'}</span>
+                                            {githubStatus?.statusCode && (
+                                                <p className="text-[8px] opacity-50">HTTP Status: {githubStatus.statusCode}</p>
+                                            )}
+                                        </div>
                                     )}
                                 </p>
                             </div>

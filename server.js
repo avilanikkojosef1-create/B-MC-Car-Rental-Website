@@ -54,14 +54,19 @@ async function startServer() {
           },
           timeout: 5000, // Add timeout
         });
-        res.json({ connected: true, user: response.data });
+        res.json({ 
+          connected: true, 
+          user: response.data,
+          isProduction: process.env.NODE_ENV === 'production'
+        });
       } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || String(error);
         console.error("GitHub Status Error:", errorMessage);
         res.json({ 
           connected: false, 
           error: errorMessage,
-          statusCode: error.response?.status
+          statusCode: error.response?.status,
+          isProduction: process.env.NODE_ENV === 'production'
         });
       }
     });

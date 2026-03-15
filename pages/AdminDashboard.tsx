@@ -20,6 +20,7 @@ export const AdminDashboard: React.FC = () => {
     user?: any; 
     error?: string;
     statusCode?: number;
+    isProduction?: boolean;
     debug?: {
       exists: boolean;
       length: number;
@@ -559,7 +560,17 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
 
             <div className="pt-4 mt-4 border-t border-slate-800">
                 <div className="px-4 py-2">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">System Status</h3>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">System Status</h3>
+                        <button 
+                            onClick={checkGithubStatus}
+                            disabled={checkingGithub}
+                            className="p-1 hover:bg-slate-800 rounded-md transition-colors text-slate-500 hover:text-white disabled:opacity-50"
+                            title="Refresh Status"
+                        >
+                            <RefreshCw size={12} className={checkingGithub ? 'animate-spin' : ''} />
+                        </button>
+                    </div>
                     <div className="space-y-3">
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400">GitHub API</span>
@@ -597,6 +608,16 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                                     {githubStatus?.error === 'GITHUB_TOKEN not configured' ? (
                                         <div className="space-y-1">
                                             <p>Go to <span className="text-white font-bold">Settings</span> menu and set <span className="text-orange-400 font-bold">GITHUB_TOKEN</span>.</p>
+                                            
+                                            {githubStatus?.isProduction && (
+                                                <div className="p-1.5 bg-orange-500/20 border border-orange-500/30 rounded mt-1">
+                                                    <p className="text-[8px] text-orange-200 font-bold uppercase mb-0.5">Deployment Sync Required</p>
+                                                    <p className="text-[8px] text-orange-300 leading-tight">
+                                                        You are running the <span className="font-bold">Shared App</span>. Changes to settings require you to click <span className="text-white font-bold underline">"Share"</span> again in AI Studio to update the deployment.
+                                                    </p>
+                                                </div>
+                                            )}
+
                                             {githubStatus?.debug && (
                                                 <p className="text-[8px] opacity-50">
                                                     Status: {githubStatus.debug.exists ? `Found (${githubStatus.debug.length} chars)` : 'Not found in environment'}

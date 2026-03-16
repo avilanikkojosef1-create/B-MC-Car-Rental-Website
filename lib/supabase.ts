@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getEnv } from './env';
 
 // ==========================================
 // 🚀 SUPABASE CONFIGURATION
@@ -9,9 +10,9 @@ import { createClient } from '@supabase/supabase-js';
 const storedUrl = typeof window !== 'undefined' ? localStorage.getItem('supabaseProjectUrl') : null;
 const storedKey = typeof window !== 'undefined' ? localStorage.getItem('supabaseAnonKey') : null;
 
-// Default fallbacks (placeholder)
-const defaultUrl = process.env.SUPABASE_URL || '';
-const defaultKey = process.env.SUPABASE_ANON_KEY || '';
+// Default fallbacks (using getEnv for dynamic injection support)
+const defaultUrl = getEnv('VITE_SUPABASE_URL') || process.env.SUPABASE_URL || '';
+const defaultKey = getEnv('VITE_SUPABASE_ANON_KEY') || process.env.SUPABASE_ANON_KEY || '';
 
 // Helper to validate URL
 const isValidUrl = (url: string | null): boolean => {

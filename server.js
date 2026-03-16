@@ -134,7 +134,9 @@ async function startServer() {
               VITE_EMAILJS_RESET_TEMPLATE_ID: ${JSON.stringify(process.env.VITE_EMAILJS_RESET_TEMPLATE_ID || process.env.EMAILJS_RESET_TEMPLATE_ID || '')},
               VITE_EMAILJS_PUBLIC_KEY: ${JSON.stringify(process.env.VITE_EMAILJS_PUBLIC_KEY || process.env.EMAILJS_PUBLIC_KEY || '')},
               VITE_ADMIN_USERNAME: ${JSON.stringify(process.env.VITE_ADMIN_USERNAME || process.env.ADMIN_USERNAME || '')},
-              VITE_ADMIN_PASSWORD: ${JSON.stringify(process.env.VITE_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '')}
+              VITE_ADMIN_PASSWORD: ${JSON.stringify(process.env.VITE_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '')},
+              VITE_SUPABASE_URL: ${JSON.stringify(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '')},
+              VITE_SUPABASE_ANON_KEY: ${JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '')}
             };
           </script>`;
           html = html.replace('</head>', `${envScript}</head>`);

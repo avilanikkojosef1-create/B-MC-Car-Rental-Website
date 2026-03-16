@@ -458,6 +458,16 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                         If you have created your Supabase project, please enter your credentials here. You can find these in your Supabase Dashboard under <strong>Project Settings &gt; API</strong>.
                      </p>
 
+                     {localStorage.getItem('supabaseProjectUrl') && (
+                        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                          <AlertCircle className="text-amber-600 shrink-0" size={18} />
+                          <div className="text-xs text-amber-800">
+                            <p className="font-bold mb-1">Using Custom Credentials</p>
+                            <p>The app is currently using credentials saved in this browser's local storage. This overrides the system environment variables.</p>
+                          </div>
+                        </div>
+                      )}
+
                      <div className="space-y-4">
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Project URL</label>

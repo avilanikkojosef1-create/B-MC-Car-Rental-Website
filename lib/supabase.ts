@@ -10,9 +10,9 @@ import { getEnv } from './env';
 const storedUrl = typeof window !== 'undefined' ? localStorage.getItem('supabaseProjectUrl') : null;
 const storedKey = typeof window !== 'undefined' ? localStorage.getItem('supabaseAnonKey') : null;
 
-// Default fallbacks (using getEnv for dynamic injection support)
-const defaultUrl = getEnv('VITE_SUPABASE_URL') || process.env.SUPABASE_URL || '';
-const defaultKey = getEnv('VITE_SUPABASE_ANON_KEY') || process.env.SUPABASE_ANON_KEY || '';
+// Default fallbacks (placeholder)
+const defaultUrl = getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL') || (process.env.SUPABASE_URL as string) || '';
+const defaultKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('SUPABASE_ANON_KEY') || (process.env.SUPABASE_ANON_KEY as string) || '';
 
 // Helper to validate URL
 const isValidUrl = (url: string | null): boolean => {
@@ -68,6 +68,7 @@ const createMockClient = (msg: string) => {
 
 try {
   if (!clientUrl || !isValidUrl(clientUrl)) {
+      console.warn("Supabase URL is missing or invalid. The app will use a mock client until configured in Admin Dashboard or Environment Variables.");
       throw new Error("Invalid Supabase URL");
   }
   // Attempt to initialize with determined credentials

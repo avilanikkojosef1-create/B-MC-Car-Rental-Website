@@ -440,8 +440,11 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                     </div>
                     <h1 className="text-2xl font-bold text-slate-900">Database Connection Issue</h1>
                     {connectionError && (
-                         <div className="mt-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-mono inline-block border border-red-100">
-                            Error: {connectionError}
+                         <div className="mt-4 bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm font-mono inline-block border border-red-100 text-left max-w-full overflow-hidden">
+                            <p className="font-bold mb-1">Error:</p>
+                            <p className="break-words mb-2">{connectionError}</p>
+                            <p className="font-bold mb-1 border-t border-red-100 pt-2">Attempted URL:</p>
+                            <p className="break-words text-xs">{getSupabaseConfig().url || 'None configured'}</p>
                         </div>
                     )}
                 </div>

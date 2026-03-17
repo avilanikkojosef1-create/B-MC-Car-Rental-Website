@@ -126,6 +126,11 @@ async function startServer() {
       // Serve index.html with injected environment variables
       app.get('*all', (req, res) => {
         try {
+          // Prevent caching of index.html so environment variables are always fresh
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          
           let html = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
           const envScript = `<script>
             window.ENV = {

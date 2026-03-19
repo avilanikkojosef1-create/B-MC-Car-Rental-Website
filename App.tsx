@@ -50,8 +50,8 @@ const App: React.FC = () => {
             } />
             <Route path="/about" element={
                <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center bg-slate-50">
-                  <h1 className="text-4xl font-bold text-slate-900 mb-4">About B&MC CAR RENTAL Tacloban</h1>
-                  <p className="max-w-2xl text-slate-600">The premier car rental service in Tacloban City, dedicated to providing safe, reliable, and affordable vehicles for all your travel needs in Leyte and Samar.</p>
+                  <h1 className="text-4xl font-bold text-slate-900 mb-4">About B&MC Car Rental Tacloban</h1>
+                  <p className="max-w-2xl text-slate-600">B&MC CAR RENTAL Tacloban provides reliable car rental Tacloban City services across Leyte, Philippines. From Tacloban airport car rental to long-term self drive options, we are your trusted travel partner in the region.</p>
                </div>
             } />
             <Route path="/contact" element={
@@ -101,7 +101,7 @@ const App: React.FC = () => {
                         allowFullScreen 
                         loading="lazy" 
                         referrerPolicy="no-referrer-when-downgrade"
-                        title="B&MC CAR RENTAL Tacloban Location"
+                        title="B&MC Car Rental Tacloban Location"
                         className="rounded-xl"
                       ></iframe>
                     </div>

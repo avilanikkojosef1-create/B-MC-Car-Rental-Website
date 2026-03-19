@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Car, Booking } from '../types';
 import { LogOut, LayoutDashboard, Users, Plus, Edit, Trash2, Search, Save, X, Upload, Calendar, CheckCircle, XCircle, Loader2, AlertCircle, Database, Copy, Check, Settings, RefreshCw, Facebook } from 'lucide-react';
 import { supabase, getSupabaseConfig } from '../lib/supabase';
+import { getEnv } from '../lib/env';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'fleet' | 'bookings'>('fleet');
+  const [activeTab, setActiveTab] = useState<'fleet' | 'bookings' | 'settings'>('fleet');
   
   // Data State
   const [fleet, setFleet] = useState<Car[]>([]);
@@ -15,6 +16,19 @@ export const AdminDashboard: React.FC = () => {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [connectionError, setConnectionError] = useState<string>('');
+  
+  // Search/Filter State
+  const [fleetSearch, setFleetSearch] = useState('');
+  const [fleetCategoryFilter, setFleetCategoryFilter] = useState<string>('All');
+  const [bookingSearch, setBookingSearch] = useState('');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<string>('All');
+
+  // Settings State
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [settingsError, setSettingsError] = useState('');
   const [githubStatus, setGithubStatus] = useState<{ 
     connected: boolean; 
     user?: any; 
@@ -51,7 +65,46 @@ export const AdminDashboard: React.FC = () => {
     }
     fetchRealData();
     checkGithubStatus();
+    fetchAdminSettings();
   }, [navigate]);
+
+  const fetchAdminSettings = async () => {
+    try {
+      const { data: user } = await supabase.from('admin_settings').select('value').eq('id', 'admin_username').maybeSingle();
+      const { data: pass } = await supabase.from('admin_settings').select('value').eq('id', 'admin_password').maybeSingle();
+      
+      setAdminUsername(user?.value || getEnv('VITE_ADMIN_USERNAME') || 'B&MC');
+      setAdminPassword(pass?.value || getEnv('VITE_ADMIN_PASSWORD') || 'makmak123');
+    } catch (err) {
+      console.error("Error fetching settings:", err);
+    }
+  };
+
+  const handleUpdateAdminSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingSettings(true);
+    setSettingsError('');
+    setSettingsSuccess('');
+
+    try {
+      const { error: userError } = await supabase
+        .from('admin_settings')
+        .upsert({ id: 'admin_username', value: adminUsername, updated_at: new Date().toISOString() });
+      
+      const { error: passError } = await supabase
+        .from('admin_settings')
+        .upsert({ id: 'admin_password', value: adminPassword, updated_at: new Date().toISOString() });
+
+      if (userError || passError) throw userError || passError;
+      
+      setSettingsSuccess('Admin credentials updated successfully!');
+      setTimeout(() => setSettingsSuccess(''), 3000);
+    } catch (err: any) {
+      setSettingsError(`Update failed: ${err.message}`);
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
 
   const checkGithubStatus = async () => {
     setCheckingGithub(true);
@@ -444,7 +497,10 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                             <p className="font-bold mb-1">Error:</p>
                             <p className="break-words mb-2">{connectionError}</p>
                             <p className="font-bold mb-1 border-t border-red-100 pt-2">Attempted URL:</p>
-                            <p className="break-words text-xs">{getSupabaseConfig().url || 'None configured'}</p>
+                            <p className="break-words text-xs mb-2">{getSupabaseConfig().url || 'None configured'}</p>
+                            <p className="font-bold mb-1 border-t border-red-100 pt-2">Environment Variables:</p>
+                            <p className="break-words text-xs">VITE_SUPABASE_URL: {getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL') ? 'Set' : 'Missing'}</p>
+                            <p className="break-words text-xs">VITE_SUPABASE_ANON_KEY: {getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('SUPABASE_ANON_KEY') ? 'Set' : 'Missing'}</p>
                         </div>
                     )}
                 </div>
@@ -566,6 +622,13 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
             >
                 <Users size={20} /> Bookings
             </button>
+
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${activeTab === 'settings' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >
+                <Settings size={20} /> Settings
+            </button>
             
             <button 
               onClick={() => setNeedsSetup(true)}
@@ -685,12 +748,20 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
                 <div className="flex items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
-                          {activeTab === 'fleet' ? 'Fleet Management' : 'Booking Requests'}
+                          {activeTab === 'fleet' ? 'Fleet Management' : activeTab === 'bookings' ? 'Booking Requests' : 'Admin Settings'}
                         </h1>
                         <p className="text-slate-500">
-                          {activeTab === 'fleet' ? 'Manage your prices and images' : 'View customer inquiries'}
+                          {activeTab === 'fleet' ? 'Manage your prices and images' : activeTab === 'bookings' ? 'View customer inquiries' : 'Manage your credentials'}
                         </p>
                     </div>
+                    <button 
+                        onClick={fetchRealData}
+                        disabled={loading}
+                        className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm disabled:opacity-50"
+                        title="Refresh Data"
+                    >
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                    </button>
                     {isConnected !== null && (
                         <div className={`hidden lg:flex px-3 py-1 rounded-full text-xs font-bold items-center gap-1.5 ${isConnected ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
                             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
@@ -712,145 +783,274 @@ create policy "Public Insert Storage" on storage.objects for insert with check (
             ) : (
                 <>
                 {activeTab === 'fleet' ? (
-                /* FLEET TAB */
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="relative flex-1 md:max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                            <input type="text" placeholder="Search vehicle..." className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input 
+                                type="text" 
+                                placeholder="Search fleet..." 
+                                value={fleetSearch}
+                                onChange={(e) => setFleetSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                            />
                         </div>
-                        <button onClick={openAddModal} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-black transition-colors flex items-center gap-2">
-                            <Plus size={16} /> Add Vehicle
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <span className="text-xs font-bold text-slate-500 uppercase">Category:</span>
+                            <select 
+                                value={fleetCategoryFilter}
+                                onChange={(e) => setFleetCategoryFilter(e.target.value)}
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                                <option value="All">All Categories</option>
+                                {['Hatchback', 'Sedan', 'SUV', 'Van', 'MPV', 'Pickup', 'L300'].map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <button 
+                          onClick={openAddModal}
+                          className="w-full md:w-auto bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Plus size={20} /> Add Vehicle
                         </button>
                     </div>
-                    {fleet.length === 0 ? (
-                        <div className="p-12 text-center text-slate-500">
-                            <AlertCircle className="mx-auto mb-3 opacity-50" size={48} />
-                            <p>No vehicles found in database. Click "Add Vehicle" to start.</p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                                        <th className="p-4 font-bold border-b border-slate-100">Vehicle</th>
-                                        <th className="p-4 font-bold border-b border-slate-100">Category</th>
-                                        <th className="p-4 font-bold border-b border-slate-100">Daily Rate</th>
-                                        <th className="p-4 font-bold border-b border-slate-100 text-right">Actions</th>
+                    
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                                    <th className="p-4 font-bold border-b border-slate-100">Vehicle</th>
+                                    <th className="p-4 font-bold border-b border-slate-100">Category</th>
+                                    <th className="p-4 font-bold border-b border-slate-100">Daily Rate</th>
+                                    <th className="p-4 font-bold border-b border-slate-100">Status</th>
+                                    <th className="p-4 font-bold border-b border-slate-100 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-sm">
+                                {fleet.filter(car => {
+                                    const matchesSearch = 
+                                        car.name.toLowerCase().includes(fleetSearch.toLowerCase()) || 
+                                        car.category.toLowerCase().includes(fleetSearch.toLowerCase());
+                                    const matchesCategory = fleetCategoryFilter === 'All' || car.category === fleetCategoryFilter;
+                                    return matchesSearch && matchesCategory;
+                                }).map((car) => (
+                                    <tr key={car.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-4 border-b border-slate-100">
+                                            <div className="flex items-center gap-3">
+                                                <img src={car.imageUrl} alt={car.name} className="w-12 h-12 rounded-lg object-cover bg-slate-100" />
+                                                <span className="font-bold text-slate-900">{car.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 border-b border-slate-100 text-slate-600">{car.category}</td>
+                                        <td className="p-4 border-b border-slate-100 font-mono font-bold text-slate-900">₱{car.pricePerDay.toLocaleString()}</td>
+                                        <td className="p-4 border-b border-slate-100">
+                                            <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold uppercase border border-green-200">Available</span>
+                                        </td>
+                                        <td className="p-4 border-b border-slate-100 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button 
+                                                  onClick={() => openEditModal(car)}
+                                                  className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button 
+                                                  onClick={() => handleDeleteCar(car.id)}
+                                                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="text-sm">
-                                    {fleet.map((car) => (
-                                        <tr key={car.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 border-b border-slate-100">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden border border-slate-200">
-                                                        <img src={car.imageUrl || 'https://via.placeholder.com/150'} alt="" className="w-full h-full object-cover" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold text-slate-900 block">{car.name}</span>
-                                                        <span className="text-xs text-slate-400">{car.fuelType} • {car.transmission}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100">
-                                                <span className="bg-slate-100 px-2 py-1 rounded text-xs font-bold uppercase border border-slate-200">{car.category}</span>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100 font-bold text-orange-600">
-                                                ₱{car.pricePerDay.toLocaleString()}
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => openEditModal(car)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                                        <Edit size={16} />
-                                                    </button>
-                                                    <button onClick={() => handleDeleteCar(car.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                ) : (
-                /* BOOKINGS TAB */
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    {bookings.length === 0 ? (
-                        <div className="p-12 text-center text-slate-500">
-                             <AlertCircle className="mx-auto mb-3 opacity-50" size={48} />
-                             <p>No bookings yet.</p>
+            ) : activeTab === 'bookings' ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input 
+                                type="text" 
+                                placeholder="Search bookings..." 
+                                value={bookingSearch}
+                                onChange={(e) => setBookingSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                            />
                         </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                                        <th className="p-4 font-bold border-b border-slate-100">Customer</th>
-                                        <th className="p-4 font-bold border-b border-slate-100">Trip Details</th>
-                                        <th className="p-4 font-bold border-b border-slate-100">Requested Car</th>
-                                        <th className="p-4 font-bold border-b border-slate-100">Status</th>
-                                        <th className="p-4 font-bold border-b border-slate-100 text-right">Actions</th>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <span className="text-xs font-bold text-slate-500 uppercase">Status:</span>
+                            <select 
+                                value={bookingStatusFilter}
+                                onChange={(e) => setBookingStatusFilter(e.target.value)}
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                                <option value="All">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Cancelled">Cancelled</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                                    <th className="p-4 font-bold border-b border-slate-100">Customer</th>
+                                    <th className="p-4 font-bold border-b border-slate-100">Trip Details</th>
+                                    <th className="p-4 font-bold border-b border-slate-100">Vehicle</th>
+                                    <th className="p-4 font-bold border-b border-slate-100">Status</th>
+                                    <th className="p-4 font-bold border-b border-slate-100 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-sm">
+                                {bookings.filter(b => {
+                                    const matchesSearch = 
+                                        b.user_name.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                                        b.car_type?.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                                        b.contact_number.includes(bookingSearch);
+                                    const matchesStatus = bookingStatusFilter === 'All' || b.status === bookingStatusFilter;
+                                    return matchesSearch && matchesStatus;
+                                }).map((booking) => (
+                                    <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-4 border-b border-slate-100">
+                                            <div className="font-bold text-slate-900">{booking.user_name}</div>
+                                            <div className="text-xs text-slate-500">{booking.contact_number}</div>
+                                            {booking.facebook_account && (
+                                                <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
+                                                    <Facebook size={10} /> {booking.facebook_account}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 border-b border-slate-100">
+                                            <div className="flex items-center gap-1 text-slate-600">
+                                                <Calendar size={12}/> 
+                                                {booking.start_date ? new Date(booking.start_date).toLocaleDateString() : 'N/A'}
+                                            </div>
+                                            <div className="text-xs text-slate-400">{booking.duration} • {booking.pickup_location}</div>
+                                            {booking.special_requests && (
+                                                <div className="mt-2 p-2 bg-slate-50 rounded border border-slate-100 text-[10px] text-slate-500 italic max-w-xs">
+                                                    "{booking.special_requests}"
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 border-b border-slate-100 text-slate-900 font-medium">
+                                            {booking.car_type}
+                                        </td>
+                                        <td className="p-4 border-b border-slate-100">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase border ${
+                                            booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
+                                            booking.status === 'Confirmed' ? 'bg-green-50 text-green-600 border-green-200' :
+                                            booking.status === 'Completed' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                            'bg-slate-100 text-slate-500 border-slate-200'
+                                            }`}>
+                                            {booking.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 border-b border-slate-100 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button 
+                                                    onClick={() => updateBookingStatus(booking.id, 'Confirmed')}
+                                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Confirm"
+                                                >
+                                                    <CheckCircle size={18} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => updateBookingStatus(booking.id, 'Completed')}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Mark Completed"
+                                                >
+                                                    <Check size={18} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => updateBookingStatus(booking.id, 'Cancelled')}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Cancel/Reject"
+                                                >
+                                                    <XCircle size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="text-sm">
-                                    {bookings.map((booking) => (
-                                        <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 border-b border-slate-100">
-                                                <div className="font-bold text-slate-900">{booking.user_name}</div>
-                                                <div className="text-xs text-slate-500">{booking.contact_number}</div>
-                                                {booking.facebook_account && (
-                                                    <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
-                                                        <Facebook size={10} /> {booking.facebook_account}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100">
-                                                <div className="flex items-center gap-1 text-slate-600">
-                                                    <Calendar size={12}/> 
-                                                    {booking.start_date ? new Date(booking.start_date).toLocaleDateString() : 'N/A'}
-                                                </div>
-                                                <div className="text-xs text-slate-400">{booking.duration} • {booking.pickup_location}</div>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100 text-slate-900 font-medium">
-                                                {booking.car_type}
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase border ${
-                                                booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
-                                                booking.status === 'Confirmed' ? 'bg-green-50 text-green-600 border-green-200' :
-                                                'bg-slate-100 text-slate-500 border-slate-200'
-                                                }`}>
-                                                {booking.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 border-b border-slate-100 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => updateBookingStatus(booking.id, 'Confirmed')}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Confirm"
-                                                    >
-                                                        <CheckCircle size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => updateBookingStatus(booking.id, 'Cancelled')}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Reject"
-                                                    >
-                                                        <XCircle size={18} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                )}
+            ) : (
+                <div className="max-w-2xl mx-auto">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 bg-slate-50">
+                            <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                <Settings className="text-orange-600" size={20} />
+                                Admin Settings
+                            </h3>
+                            <p className="text-sm text-slate-500">Manage your administrator credentials and system preferences.</p>
+                        </div>
+                        
+                        <form onSubmit={handleUpdateAdminSettings} className="p-8 space-y-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Admin Username</label>
+                                    <input 
+                                        type="text" 
+                                        value={adminUsername}
+                                        onChange={(e) => setAdminUsername(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        placeholder="Enter new username"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Admin Password</label>
+                                    <input 
+                                        type="password" 
+                                        value={adminPassword}
+                                        onChange={(e) => setAdminPassword(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        placeholder="Enter new password"
+                                    />
+                                </div>
+                            </div>
+
+                            {settingsError && (
+                                <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium">
+                                    {settingsError}
+                                </div>
+                            )}
+
+                            {settingsSuccess && (
+                                <div className="p-3 bg-green-50 border border-green-100 text-green-600 rounded-xl text-sm font-medium">
+                                    {settingsSuccess}
+                                </div>
+                            )}
+
+                            <div className="pt-4">
+                                <button 
+                                    type="submit"
+                                    disabled={isUpdatingSettings}
+                                    className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-black transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-70"
+                                >
+                                    {isUpdatingSettings ? <Loader2 size={20} className="animate-spin" /> : <><Save size={20} /> Update Credentials</>}
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div className="p-6 bg-amber-50 border-t border-amber-100">
+                            <div className="flex gap-3">
+                                <AlertCircle className="text-amber-600 shrink-0" size={20} />
+                                <div className="text-xs text-amber-800 leading-relaxed">
+                                    <p className="font-bold mb-1">Security Note:</p>
+                                    <p>Changing these credentials will update the values stored in your Supabase database. These will override any environment variables set in AI Studio.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
                 </>
             )}
         </div>

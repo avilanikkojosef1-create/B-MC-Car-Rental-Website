@@ -52,7 +52,7 @@ async function startServer() {
         const response = await axios.get(GITHUB_USER_URL, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "User-Agent": "Seff-Car-Rental-App",
+            "User-Agent": "BMC-Car-Rental-App",
           },
           timeout: 5000, // Add timeout
         });
@@ -90,7 +90,7 @@ async function startServer() {
         const response = await axios.get(GITHUB_USER_URL, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "User-Agent": "Seff-Car-Rental-App",
+            "User-Agent": "BMC-Car-Rental-App",
           },
           timeout: 5000,
         });

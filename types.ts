@@ -29,5 +29,6 @@ export interface Booking {
   duration: string;
   car_type: string;
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+  special_requests?: string;
   created_at: string;
 }

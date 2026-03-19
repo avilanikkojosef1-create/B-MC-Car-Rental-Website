@@ -141,15 +141,19 @@ export const Home: React.FC = () => {
             {APP_NAME}
           </h2>
           
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-8 leading-tight tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] max-w-4xl mx-auto">
-            With Our Car Rental Services, <br/>
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] max-w-4xl mx-auto">
+            B&MC Car Rental Tacloban City <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-clean-white">
-              The Adventure Begins As Soon As You Hit The Ignition.
+              Tacloban Airport Car Rental
             </span>
           </h1>
 
+          <p className="max-w-3xl mx-auto text-lg md:text-xl text-white/90 mb-10 drop-shadow-md font-medium">
+            B&MC CAR RENTAL Tacloban provides reliable car rental Tacloban City services across Leyte, Philippines. From Tacloban airport car rental to long-term self drive options, we are your trusted travel partner in the region.
+          </p>
+
           <p className="mt-8 text-white/80 text-sm font-medium drop-shadow-md">
-            Trusted by 5,000+ travelers in Eastern Visayas
+            Trusted by 5,000+ travelers in Leyte & Samar
           </p>
 
         </div>
@@ -262,9 +266,9 @@ export const Home: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-extrabold text-pitch-black mb-12 text-center">What Our Customers Say</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
-                    {name: "Charles Yu", role: "Tourist", quote: "Excellent service! We rented an Innova for our family trip to Samar. The car was clean and the staff was very professional."},
-                    {name: "Maria Santos", role: "Business Traveler", quote: `${APP_NAME} is my go-to in Tacloban. The rates are transparent and the Wigo I rented was perfect for city driving.`},
-                    {name: "David Smith", role: "Adventure Seeker", quote: "Rented a Montero for a week. Handled the roads perfectly. Highly recommend their 24/7 support!"}
+                    {name: "Charles Yu", role: "Tourist", quote: "Excellent service! We rented an Innova from B&MC for our family trip to Samar. The car was clean and the staff was very professional."},
+                    {name: "Maria Santos", role: "Business Traveler", quote: "B&MC Car Rental is my go-to in Tacloban. The rates are transparent and the Wigo I rented was perfect for city driving."},
+                    {name: "David Smith", role: "Adventure Seeker", quote: "Rented a Montero for a week from B&MC. Handled the Leyte roads perfectly. Highly recommend their 24/7 support!"}
                 ].map((testimonial, idx) => (
                     <div key={idx} className="bg-light-gray p-8 rounded-2xl border border-slate-100 relative">
                         <div className="text-secondary text-6xl font-serif absolute top-4 left-6 opacity-20">"</div>

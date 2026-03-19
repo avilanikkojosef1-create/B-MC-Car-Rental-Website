@@ -13,4 +13,4 @@ import { Car } from './types';
 
 export const CAR_FLEET: Car[] = [];
 
-export const APP_NAME = "B&MC CAR RENTAL Tacloban";
+export const APP_NAME = "B&MC Car Rental Tacloban";
